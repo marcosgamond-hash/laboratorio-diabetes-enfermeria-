@@ -2,12 +2,7 @@
 """
 STREAMLIT CLOUD APP — LABORATORIO DE ESTUDIO DE DIABETES PARA ENFERMERÍA
 Dirección Académica: Dr. Marcos Gamond (60 hs cátedra • 10 Unidades)
-EDICIÓN ESPECIAL: LANZAMIENTO 14 DE NOVIEMBRE — DÍA MUNDIAL DE LA DIABETES
-Incluye:
-1. Registro gratuito de Enfermería (Nombre, DNI, Localidad, Hospital/Institución, Servicio, Contacto).
-2. Registro de Calificaciones / Puntaje Final y Emisión de Certificado Nominal.
-3. Panel Estadístico del Director Académico (Dr. Marcos Gamond) por Localidad, Hospital, Servicio y Rendimiento + Exportación a Excel (.CSV).
-4. Acceso Directo en 1 clic para Autoridades / Evaluadores (Polo Tecnológico).
+Vista limpia sin barras superiores oscuras: abre directo el encabezado del Campus con el Círculo Azul.
 """
 import os
 import re
@@ -45,21 +40,40 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
+# Forzar fondo claro clínico (#f1f5f9) en toda la página de Streamlit y eliminar cualquier barra negra superior
 st.markdown(
     """
     <style>
       #MainMenu {visibility: hidden;}
       footer {visibility: hidden;}
+      header {height: 0px !important; min-height: 0px !important; visibility: hidden;}
+      .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: #f1f5f9 !important;
+        color: #0f172a !important;
+      }
       .block-container {
-        padding-top: 0.6rem !important;
-        padding-bottom: 0rem !important;
-        padding-left: 0.6rem !important;
-        padding-right: 0.6rem !important;
+        padding-top: 0rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 0rem !important;
+        padding-right: 0rem !important;
         max-width: 100% !important;
       }
       iframe {
         border: none !important;
         width: 100% !important;
+        display: block !important;
+      }
+      /* Estilizar el pie de página institucional con estética médica clara */
+      div[data-testid="stExpander"] {
+        background-color: #ffffff !important;
+        border: 1.5px solid #cbd5e1 !important;
+        border-radius: 14px !important;
+        margin: 8px 18px !important;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+      }
+      div[data-testid="stExpander"] summary {
+        color: #0f172a !important;
+        font-weight: 700 !important;
       }
     </style>
     """,
@@ -215,14 +229,21 @@ def construir_html_completo():
 
 
 # ==============================================================================
-# BARRA SUPERIOR DE REGISTRO DE CURSANTES, CERTIFICADO Y PANEL DR. MARCOS GAMOND
+# 1. ARRIBA DE TODO: EL CAMPUS INTERACTIVO COMPLETO (SIN BARRAS NEGRAS ARRIBA)
 # ==============================================================================
-col_reg, col_media, col_admin = st.columns([2.2, 2.2, 1.8])
+html_campus = construir_html_completo()
+components.html(html_campus, height=2050, scrolling=True)
+
+
+# ==============================================================================
+# 2. AL PIE DE PÁGINA (FONDO CLARO CLÍNICO): ACREDITACIÓN Y PANEL DOCENTE
+# ==============================================================================
+col_reg, col_admin = st.columns([3, 2])
 
 with col_reg:
-    with st.expander("🔵 Inscripción Gratuita (14 Nov • Día Mundial de la Diabetes) & Registro de Nota Final", expanded=False):
+    with st.expander("🔵 Registro de Acreditación de Enfermería (Edición 14 de Noviembre)", expanded=False):
         st.caption(
-            "Iniciativa abierta a la comunidad de Enfermería en conmemoración del **14 de Noviembre — Día Mundial de la Diabetes** (Dirección Académica: **Dr. Marcos Gamond**)."
+            "Completá tus datos para registrar tu participación y calificación por localidad, hospital y servicio (**Dirección Académica: Dr. Marcos Gamond**)."
         )
         with st.form("form_registro_enfermeria", clear_on_submit=False):
             c1, c2 = st.columns(2)
@@ -233,19 +254,18 @@ with col_reg:
             with c2:
                 r_hospital = st.text_input("Hospital / Institución / CAPS *", placeholder="Ej: Hospital Dr. Horacio Heller")
                 r_servicio = st.selectbox("Servicio en el que se desempeña *", options=SERVICIOS_OPCIONES)
-                r_contacto = st.text_input("Email o WhatsApp (para Certificado y Nivel 2)", placeholder="Ej: ana@email.com / 299...")
+                r_contacto = st.text_input("Email o WhatsApp", placeholder="Ej: ana@email.com / 299...")
 
-            st.markdown("---")
             c3, c4 = st.columns(2)
             with c3:
                 r_estado = st.selectbox(
-                    "Estado de cursada actual:",
-                    options=["Iniciando / En curso", "Curso Finalizado (10/10 Unidades Aprobadas)"],
+                    "Estado de cursada:",
+                    options=["En curso", "Curso Finalizado (10/10 Unidades Aprobadas)"],
                 )
             with c4:
-                r_puntaje = st.number_input("Promedio / Puntaje obtenido (%)", min_value=0, max_value=100, value=90, step=5)
+                r_puntaje = st.number_input("Puntaje obtenido (%)", min_value=0, max_value=100, value=90, step=5)
 
-            if st.form_submit_button("✅ Registrar Mis Datos / Actualizar Mi Avance"):
+            if st.form_submit_button("✅ Guardar Mi Acreditación"):
                 if r_nombre.strip() and r_dni.strip() and r_hospital.strip():
                     db = cargar_db_cursantes()
                     key = re.sub(r"\W+", "", r_dni.strip()) or r_nombre.strip().upper()
@@ -262,44 +282,13 @@ with col_reg:
                         "fecha_registro": datetime.now().strftime("%d/%m/%Y %H:%M"),
                     }
                     guardar_db_cursantes(db)
-                    st.success(
-                        f"🎉 ¡Gracias, **{r_nombre}** ({r_hospital} — {r_servicio}, {r_localidad})! Tus datos y puntaje ({r_puntaje}%) quedaron registrados."
-                    )
+                    st.success(f"🎉 ¡Datos registrados correctamente para {r_nombre} ({r_hospital})!")
                 else:
-                    st.warning("Completá Nombre, DNI e Institución/Hospital para registrar tu inscripción.")
-
-with col_media:
-    with st.expander("🎬 Reproductor Directo de Video-Clases y Podcasts (Unidades 1 a 10)", expanded=False):
-        u_num = st.selectbox(
-            "Elegí la Unidad para reproducir Video o Podcast:",
-            options=list(range(1, 11)),
-            format_func=lambda n: f"Unidad {n}: {UNIDADES_ACADEMICAS[n-1]['titulo']}",
-        )
-        c_vid, c_aud = st.columns(2)
-        with c_vid:
-            local_v = buscar_archivo_media(f"unidad_{u_num}.mp4")
-            if local_v:
-                st.caption(f"📺 Video-Clase — Unidad {u_num}")
-                st.video(local_v)
-            elif u_num in UNIDADES_CON_VIDEO:
-                st.caption(f"📺 Video-Clase — Unidad {u_num}")
-                st.video(f"{CDN_BASE}/unidad_{u_num}.mp4")
-            else:
-                st.info(f"La Unidad {u_num} utiliza las Diapositivas Narradas interactivas del Campus.")
-        with c_aud:
-            local_a = buscar_archivo_media(f"unidad_{u_num}.mp3")
-            if local_a:
-                st.caption(f"🎙️ Podcast — Unidad {u_num}")
-                st.audio(local_a)
-            elif u_num in UNIDADES_CON_AUDIO:
-                st.caption(f"🎙️ Podcast — Unidad {u_num}")
-                st.audio(f"{CDN_BASE}/unidad_{u_num}.mp3")
-            else:
-                st.info(f"Podcast de la Unidad {u_num} próximamente.")
+                    st.warning("Completá Nombre, DNI e Institución/Hospital.")
 
 with col_admin:
-    with st.expander("📊 Estadísticas del Curso (Exclusivo Dr. Marcos Gamond)", expanded=False):
-        clave_docente = st.text_input("Clave de Director:", type="password", placeholder="Ingresá Gamond2026")
+    with st.expander("📊 Estadísticas de Cursantes (Exclusivo Dr. Marcos Gamond)", expanded=False):
+        clave_docente = st.text_input("Clave de Director Académico:", type="password", placeholder="Ingresá Gamond2026")
         if clave_docente == "Gamond2026":
             db = cargar_db_cursantes()
             cursantes = list(db.get("cursantes", {}).values())
@@ -311,14 +300,14 @@ with col_admin:
             m1, m2, m3 = st.columns(3)
             m1.metric("👨‍⚕️ Inscriptos", total_c)
             m2.metric("🎓 Terminaron", total_fin)
-            m3.metric("⭐ Puntaje Prom.", f"{prom_nota}%")
+            m3.metric("⭐ Promedio", f"{prom_nota}%")
 
             if cursantes:
                 top_hosp = Counter(c.get("hospital", "Otro") for c in cursantes).most_common(5)
                 top_loc = Counter(c.get("localidad", "Otra") for c in cursantes).most_common(5)
                 top_serv = Counter(c.get("servicio", "Otro") for c in cursantes).most_common(5)
 
-                st.markdown("**🏥 Por Hospital / Institución:** " + " • ".join(f"{h} ({n})" for h, n in top_hosp))
+                st.markdown("**🏥 Por Hospital:** " + " • ".join(f"{h} ({n})" for h, n in top_hosp))
                 st.markdown("**📍 Por Localidad:** " + " • ".join(f"{l} ({n})" for l, n in top_loc))
                 st.markdown("**🩺 Por Servicio:** " + " • ".join(f"{s} ({n})" for s, n in top_serv))
 
@@ -328,14 +317,10 @@ with col_admin:
                         f"\"{c.get('dni','')}\",\"{c.get('nombre','')}\",\"{c.get('localidad','')}\",\"{c.get('hospital','')}\",\"{c.get('servicio','')}\",\"{c.get('contacto','')}\",\"{c.get('estado','')}\",{c.get('puntaje',0)}%,\"{c.get('fecha_registro','')}\""
                     )
                 st.download_button(
-                    "📥 Descargar Excel (.CSV) con Localidad, Hospital, Servicio y Puntajes",
+                    "📥 Descargar Excel (.CSV) Completo",
                     data="\n".join(filas_csv).encode("utf-8-sig"),
                     file_name="estadisticas_enfermeria_14nov_gamond.csv",
                     mime="text/csv",
                 )
             else:
-                st.info("Aún no hay cursantes registrados en esta sesión.")
-
-# Renderizar el Campus Completo Interactivo
-html_campus = construir_html_completo()
-components.html(html_campus, height=2150, scrolling=True)
+                st.info("Aún no hay cursantes registrados.")
