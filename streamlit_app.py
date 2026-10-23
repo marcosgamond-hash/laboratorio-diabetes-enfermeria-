@@ -2,16 +2,19 @@
 """
 STREAMLIT CLOUD APP — LABORATORIO DE ESTUDIO DE DIABETES PARA ENFERMERÍA
 Dirección Académica: Dr. Marcos Gamond (60 hs cátedra • 10 Unidades)
+EDICIÓN ESPECIAL: LANZAMIENTO 14 DE NOVIEMBRE — DÍA MUNDIAL DE LA DIABETES
 Incluye:
-1. Modo Público / Alumno sin botones de edición docente.
-2. Videos (.mp4) y Podcasts (.mp3) por streaming directo CDN (video/mp4 y audio/mpeg) + Reproductor nativo.
-3. Sistema de Acceso (Alumno / Vista Previa / Panel de Estadísticas y Notas del Director Académico).
+1. Registro gratuito de Enfermería (Nombre, DNI, Localidad, Hospital/Institución, Servicio, Contacto).
+2. Registro de Calificaciones / Puntaje Final y Emisión de Certificado Nominal.
+3. Panel Estadístico del Director Académico (Dr. Marcos Gamond) por Localidad, Hospital, Servicio y Rendimiento + Exportación a Excel (.CSV).
+4. Acceso Directo en 1 clic para Autoridades / Evaluadores (Polo Tecnológico).
 """
 import os
 import re
 import json
 import base64
 from datetime import datetime
+from collections import Counter
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -42,7 +45,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilo limpio para ocupar toda la pantalla
 st.markdown(
     """
     <style>
@@ -67,42 +69,39 @@ st.markdown(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 MULTIMEDIA_DIR = os.path.join(STATIC_DIR, "multimedia")
-DB_ALUMNOS_PATH = os.path.join(BASE_DIR, "registro_alumnos_diabetes.json")
+DB_CURSANTES_PATH = os.path.join(BASE_DIR, "cursantes_14nov_diabetes.json")
 
-# CDN jsDelivr sirve los archivos de GitHub con Content-Type: video/mp4 y audio/mpeg (indispensable para Chrome/Edge)
 CDN_BASE = "https://cdn.jsdelivr.net/gh/marcosgamond-hash/laboratorio-diabetes-enfermeria-@main"
 UNIDADES_CON_VIDEO = {1, 2, 3, 4, 5, 6, 7, 8, 9}
 UNIDADES_CON_AUDIO = {1, 2, 3, 4, 5, 6, 7, 9}
 
+SERVICIOS_OPCIONES = [
+    "Guardia / Emergencias",
+    "Sala de Internación General / Clínica Médica",
+    "Terapia Intensiva (UTI / UCO)",
+    "Consultorios Externos / Diabetología",
+    "Atención Primaria (CAPS / Centro de Salud)",
+    "Maternidad / Obstetricia / Pediatría",
+    "Quirófano / Recuperación",
+    "Docencia / Estudiante de Enfermería",
+    "Gestión / Dirección / Polo Tecnológico",
+    "Otro Servicio",
+]
 
-def cargar_db_alumnos() -> dict:
-    if os.path.exists(DB_ALUMNOS_PATH):
+
+def cargar_db_cursantes() -> dict:
+    if os.path.exists(DB_CURSANTES_PATH):
         try:
-            with open(DB_ALUMNOS_PATH, "r", encoding="utf-8") as f:
+            with open(DB_CURSANTES_PATH, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
-    # Base inicial con claves de ejemplo y estadísticas
-    return {
-        "alumnos": {
-            "DEMO2026": {
-                "codigo": "DEMO2026",
-                "nombre": "Enfermero/a Invitado (Demo)",
-                "dni": "00.000.000",
-                "institucion": "Hospital / Institución",
-                "activo": True,
-                "ingresos": 1,
-                "ultimo_acceso": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                "unidades_aprobadas": {"u1": 100},
-                "promedio": 100.0,
-            }
-        }
-    }
+    return {"cursantes": {}}
 
 
-def guardar_db_alumnos(db: dict) -> None:
+def guardar_db_cursantes(db: dict) -> None:
     try:
-        with open(DB_ALUMNOS_PATH, "w", encoding="utf-8") as f:
+        with open(DB_CURSANTES_PATH, "w", encoding="utf-8") as f:
             json.dump(db, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
@@ -183,7 +182,6 @@ def construir_html_completo():
     if thumb_1:
         html_str = html_str.replace('src="/static/assets/paciente_internacion.jpg"', f'src="{thumb_1}"')
 
-    # Ocultar todos los botones de edición/subida docente en la vista pública
     student_mode_css = """
       button[onclick*="viewUploadNLM"],
       button[onclick*="copiarPromptInfografiaUnidad"],
@@ -217,14 +215,63 @@ def construir_html_completo():
 
 
 # ==============================================================================
-# BARRA SUPERIOR DE VIDEO-CLASES, PODCASTS Y PANEL DOCENTE (DR. MARCOS GAMOND)
+# BARRA SUPERIOR DE REGISTRO DE CURSANTES, CERTIFICADO Y PANEL DR. MARCOS GAMOND
 # ==============================================================================
-col_media, col_admin = st.columns([3, 2])
+col_reg, col_media, col_admin = st.columns([2.2, 2.2, 1.8])
+
+with col_reg:
+    with st.expander("🔵 Inscripción Gratuita (14 Nov • Día Mundial de la Diabetes) & Registro de Nota Final", expanded=False):
+        st.caption(
+            "Iniciativa abierta a la comunidad de Enfermería en conmemoración del **14 de Noviembre — Día Mundial de la Diabetes** (Dirección Académica: **Dr. Marcos Gamond**)."
+        )
+        with st.form("form_registro_enfermeria", clear_on_submit=False):
+            c1, c2 = st.columns(2)
+            with c1:
+                r_nombre = st.text_input("Nombre y Apellido *", placeholder="Ej: Lic. Ana Pérez")
+                r_dni = st.text_input("DNI o Matrícula *", placeholder="Ej: 34.567.890")
+                r_localidad = st.text_input("Localidad y Provincia *", placeholder="Ej: Neuquén Capital")
+            with c2:
+                r_hospital = st.text_input("Hospital / Institución / CAPS *", placeholder="Ej: Hospital Dr. Horacio Heller")
+                r_servicio = st.selectbox("Servicio en el que se desempeña *", options=SERVICIOS_OPCIONES)
+                r_contacto = st.text_input("Email o WhatsApp (para Certificado y Nivel 2)", placeholder="Ej: ana@email.com / 299...")
+
+            st.markdown("---")
+            c3, c4 = st.columns(2)
+            with c3:
+                r_estado = st.selectbox(
+                    "Estado de cursada actual:",
+                    options=["Iniciando / En curso", "Curso Finalizado (10/10 Unidades Aprobadas)"],
+                )
+            with c4:
+                r_puntaje = st.number_input("Promedio / Puntaje obtenido (%)", min_value=0, max_value=100, value=90, step=5)
+
+            if st.form_submit_button("✅ Registrar Mis Datos / Actualizar Mi Avance"):
+                if r_nombre.strip() and r_dni.strip() and r_hospital.strip():
+                    db = cargar_db_cursantes()
+                    key = re.sub(r"\W+", "", r_dni.strip()) or r_nombre.strip().upper()
+                    db["cursantes"][key] = {
+                        "dni": r_dni.strip(),
+                        "nombre": r_nombre.strip(),
+                        "localidad": r_localidad.strip() or "No especificada",
+                        "hospital": r_hospital.strip(),
+                        "servicio": r_servicio,
+                        "contacto": r_contacto.strip(),
+                        "estado": r_estado,
+                        "finalizo": "Finalizado" in r_estado,
+                        "puntaje": int(r_puntaje),
+                        "fecha_registro": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                    }
+                    guardar_db_cursantes(db)
+                    st.success(
+                        f"🎉 ¡Gracias, **{r_nombre}** ({r_hospital} — {r_servicio}, {r_localidad})! Tus datos y puntaje ({r_puntaje}%) quedaron registrados."
+                    )
+                else:
+                    st.warning("Completá Nombre, DNI e Institución/Hospital para registrar tu inscripción.")
 
 with col_media:
     with st.expander("🎬 Reproductor Directo de Video-Clases y Podcasts (Unidades 1 a 10)", expanded=False):
         u_num = st.selectbox(
-            "Elegí la Unidad para ver su Video o escuchar su Podcast:",
+            "Elegí la Unidad para reproducir Video o Podcast:",
             options=list(range(1, 11)),
             format_func=lambda n: f"Unidad {n}: {UNIDADES_ACADEMICAS[n-1]['titulo']}",
         )
@@ -251,54 +298,43 @@ with col_media:
                 st.info(f"Podcast de la Unidad {u_num} próximamente.")
 
 with col_admin:
-    with st.expander("🔐 Gestión de Alumnos, Notas y Control de Acceso (Exclusivo Dr. Marcos Gamond)", expanded=False):
-        clave_docente = st.text_input("Clave de Director Académico:", type="password", placeholder="Ingresá Gamond2026")
+    with st.expander("📊 Estadísticas del Curso (Exclusivo Dr. Marcos Gamond)", expanded=False):
+        clave_docente = st.text_input("Clave de Director:", type="password", placeholder="Ingresá Gamond2026")
         if clave_docente == "Gamond2026":
-            db = cargar_db_alumnos()
-            alumnos_dict = db.get("alumnos", {})
-            total_al = len(alumnos_dict)
-            egresados = sum(1 for a in alumnos_dict.values() if len(a.get("unidades_aprobadas", {})) >= 10)
-            prom_gral = (
-                round(sum(a.get("promedio", 0) for a in alumnos_dict.values()) / total_al, 1)
-                if total_al > 0 else 0.0
-            )
+            db = cargar_db_cursantes()
+            cursantes = list(db.get("cursantes", {}).values())
+            total_c = len(cursantes)
+            finalizados = [c for c in cursantes if c.get("finalizo")]
+            total_fin = len(finalizados)
+            prom_nota = round(sum(c.get("puntaje", 0) for c in cursantes) / total_c, 1) if total_c > 0 else 0.0
+
             m1, m2, m3 = st.columns(3)
-            m1.metric("👨‍⚕️ Inscriptos", total_al)
-            m2.metric("🎓 Finalizaron", egresados)
-            m3.metric("📊 Promedio", f"{prom_gral}%")
+            m1.metric("👨‍⚕️ Inscriptos", total_c)
+            m2.metric("🎓 Terminaron", total_fin)
+            m3.metric("⭐ Puntaje Prom.", f"{prom_nota}%")
 
-            st.markdown("##### ➕ Habilitar Nuevo Alumno Pago")
-            with st.form("alta_alumno_form", clear_on_submit=True):
-                f_nom = st.text_input("Nombre y Apellido del Enfermero/a")
-                f_dni = st.text_input("DNI / Matrícula")
-                f_cod = st.text_input("Código / Clave asignada (ej: ENF2026)")
-                if st.form_submit_button("Habilitar Acceso"):
-                    if f_nom and f_cod:
-                        db["alumnos"][f_cod.strip().upper()] = {
-                            "codigo": f_cod.strip().upper(),
-                            "nombre": f_nom.strip(),
-                            "dni": f_dni.strip(),
-                            "institucion": "Curso 60 hs",
-                            "activo": True,
-                            "ingresos": 0,
-                            "ultimo_acceso": "-",
-                            "unidades_aprobadas": {},
-                            "promedio": 0.0,
-                        }
-                        guardar_db_alumnos(db)
-                        st.success(f"✅ Alumno {f_nom} habilitado con clave {f_cod.upper()}")
+            if cursantes:
+                top_hosp = Counter(c.get("hospital", "Otro") for c in cursantes).most_common(5)
+                top_loc = Counter(c.get("localidad", "Otra") for c in cursantes).most_common(5)
+                top_serv = Counter(c.get("servicio", "Otro") for c in cursantes).most_common(5)
 
-            if alumnos_dict:
-                filas_csv = ["Codigo,Nombre,DNI,Ingresos,Unidades_Aprobadas,Promedio_Pct"]
-                for k, v in alumnos_dict.items():
-                    u_ap = len(v.get("unidades_aprobadas", {}))
-                    filas_csv.append(f"{k},{v.get('nombre','')},{v.get('dni','')},{v.get('ingresos',0)},{u_ap}/10,{v.get('promedio',0)}%")
+                st.markdown("**🏥 Por Hospital / Institución:** " + " • ".join(f"{h} ({n})" for h, n in top_hosp))
+                st.markdown("**📍 Por Localidad:** " + " • ".join(f"{l} ({n})" for l, n in top_loc))
+                st.markdown("**🩺 Por Servicio:** " + " • ".join(f"{s} ({n})" for s, n in top_serv))
+
+                filas_csv = ["DNI,Nombre,Localidad,Hospital_Institucion,Servicio,Contacto,Estado,Puntaje_Pct,Fecha"]
+                for c in cursantes:
+                    filas_csv.append(
+                        f"\"{c.get('dni','')}\",\"{c.get('nombre','')}\",\"{c.get('localidad','')}\",\"{c.get('hospital','')}\",\"{c.get('servicio','')}\",\"{c.get('contacto','')}\",\"{c.get('estado','')}\",{c.get('puntaje',0)}%,\"{c.get('fecha_registro','')}\""
+                    )
                 st.download_button(
-                    "📥 Descargar Planilla de Alumnos y Puntajes (.CSV / Excel)",
-                    data="\n".join(filas_csv).encode("utf-8"),
-                    file_name="alumnos_notas_diabetes_gamond.csv",
+                    "📥 Descargar Excel (.CSV) con Localidad, Hospital, Servicio y Puntajes",
+                    data="\n".join(filas_csv).encode("utf-8-sig"),
+                    file_name="estadisticas_enfermeria_14nov_gamond.csv",
                     mime="text/csv",
                 )
+            else:
+                st.info("Aún no hay cursantes registrados en esta sesión.")
 
 # Renderizar el Campus Completo Interactivo
 html_campus = construir_html_completo()
