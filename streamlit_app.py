@@ -2,7 +2,7 @@
 """
 STREAMLIT CLOUD APP — LABORATORIO DE ESTUDIO DE DIABETES PARA ENFERMERÍA
 Dirección Académica: Dr. Marcos Gamond (60 hs cátedra • 10 Unidades)
-Vista limpia sin barras superiores oscuras: abre directo el encabezado del Campus con el Círculo Azul.
+Edición Lanzamiento 14 de Noviembre (Día Mundial de la Diabetes)
 """
 import os
 import re
@@ -40,40 +40,146 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Forzar fondo claro clínico (#f1f5f9) en toda la página de Streamlit y eliminar cualquier barra negra superior
+# ==============================================================================
+# ESTÉTICA CLÍNICA CLARA (BLANCO Y AZUL MÉDICO — ELIMINA EL MODO OSCURO/NEGRO)
+# ==============================================================================
 st.markdown(
     """
     <style>
       #MainMenu {visibility: hidden;}
       footer {visibility: hidden;}
-      header {height: 0px !important; min-height: 0px !important; visibility: hidden;}
-      .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+      header[data-testid="stHeader"] {
+        display: none !important;
+      }
+      .stApp,
+      [data-testid="stAppViewContainer"],
+      [data-testid="stMain"],
+      [data-testid="stVerticalBlock"] {
         background-color: #f1f5f9 !important;
         color: #0f172a !important;
       }
       .block-container {
-        padding-top: 0rem !important;
-        padding-bottom: 1rem !important;
-        padding-left: 0rem !important;
-        padding-right: 0rem !important;
+        padding-top: 0.45rem !important;
+        padding-bottom: 0.5rem !important;
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
         max-width: 100% !important;
       }
       iframe {
         border: none !important;
         width: 100% !important;
         display: block !important;
+        border-radius: 12px !important;
       }
-      /* Estilizar el pie de página institucional con estética médica clara */
+
+      /* Tarjetas desplegables superiores: diseño blanco y celeste hospitalario en 1 sola línea */
       div[data-testid="stExpander"] {
-        background-color: #ffffff !important;
-        border: 1.5px solid #cbd5e1 !important;
-        border-radius: 14px !important;
-        margin: 8px 18px !important;
-        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+        background: #ffffff !important;
+        border: 1.5px solid #7dd3fc !important;
+        border-radius: 12px !important;
+        margin-bottom: 6px !important;
+        box-shadow: 0 2px 8px rgba(2, 132, 199, 0.08) !important;
+        overflow: hidden !important;
+      }
+      div[data-testid="stExpander"] details {
+        background: #ffffff !important;
+        border: none !important;
       }
       div[data-testid="stExpander"] summary {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+        color: #0369a1 !important;
+        padding: 8px 14px !important;
+        border-radius: 10px !important;
+      }
+      div[data-testid="stExpander"] summary:hover {
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
+      }
+      div[data-testid="stExpander"] summary p {
+        color: #0369a1 !important;
+        font-weight: 800 !important;
+        font-size: 0.88rem !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      div[data-testid="stExpander"] summary svg {
+        fill: #0369a1 !important;
+        color: #0369a1 !important;
+      }
+      div[data-testid="stExpanderDetails"] {
+        background-color: #ffffff !important;
         color: #0f172a !important;
+        padding: 12px 16px !important;
+        border-top: 1px solid #e0f2fe !important;
+      }
+
+      /* Formularios y campos de texto siempre claros (nunca negros) */
+      div[data-testid="stForm"] {
+        background-color: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+      }
+      label,
+      div[data-testid="stWidgetLabel"] p,
+      div[data-testid="stCaptionContainer"] p,
+      div[data-testid="stMarkdownContainer"] p {
+        color: #0f172a !important;
+      }
+      div[data-baseweb="input"],
+      div[data-baseweb="base-input"],
+      div[data-baseweb="select"] > div {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #94a3b8 !important;
+        border-radius: 8px !important;
+      }
+      input {
+        color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+        background-color: #ffffff !important;
+      }
+      input::placeholder {
+        color: #64748b !important;
+        -webkit-text-fill-color: #64748b !important;
+      }
+      div[data-baseweb="select"] span,
+      div[data-baseweb="select"] div {
+        color: #0f172a !important;
+      }
+      ul[role="listbox"],
+      li[role="option"] {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+      }
+
+      /* Botones principales en azul médico */
+      div[data-testid="stFormSubmitButton"] button,
+      div[data-testid="stDownloadButton"] button {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
         font-weight: 700 !important;
+        padding: 0.45rem 1.1rem !important;
+      }
+
+      /* Métricas del panel de estadísticas */
+      div[data-testid="stMetric"] {
+        background-color: #f0f9ff !important;
+        border: 1px solid #bae6fd !important;
+        border-radius: 10px !important;
+        padding: 8px 12px !important;
+      }
+      div[data-testid="stMetricLabel"] p {
+        color: #0369a1 !important;
+        font-weight: 700 !important;
+      }
+      div[data-testid="stMetricValue"] div {
+        color: #0f172a !important;
+        font-weight: 800 !important;
       }
     </style>
     """,
@@ -229,21 +335,14 @@ def construir_html_completo():
 
 
 # ==============================================================================
-# 1. ARRIBA DE TODO: EL CAMPUS INTERACTIVO COMPLETO (SIN BARRAS NEGRAS ARRIBA)
-# ==============================================================================
-html_campus = construir_html_completo()
-components.html(html_campus, height=2050, scrolling=True)
-
-
-# ==============================================================================
-# 2. AL PIE DE PÁGINA (FONDO CLARO CLÍNICO): ACREDITACIÓN Y PANEL DOCENTE
+# 1. BARRA SUPERIOR BLANCA Y CELESTE (INSCRIPCIÓN 14 NOV + ESTADÍSTICAS DOCENTES)
 # ==============================================================================
 col_reg, col_admin = st.columns([3, 2])
 
 with col_reg:
-    with st.expander("🔵 Registro de Acreditación de Enfermería (Edición 14 de Noviembre)", expanded=False):
+    with st.expander("🔵 Inscripción y Acreditación de Cursantes (14 de Noviembre)", expanded=False):
         st.caption(
-            "Completá tus datos para registrar tu participación y calificación por localidad, hospital y servicio (**Dirección Académica: Dr. Marcos Gamond**)."
+            "Registrá tus datos institucionales y tu calificación final (**Dirección Académica: Dr. Marcos Gamond**)."
         )
         with st.form("form_registro_enfermeria", clear_on_submit=False):
             c1, c2 = st.columns(2)
@@ -265,7 +364,7 @@ with col_reg:
             with c4:
                 r_puntaje = st.number_input("Puntaje obtenido (%)", min_value=0, max_value=100, value=90, step=5)
 
-            if st.form_submit_button("✅ Guardar Mi Acreditación"):
+            if st.form_submit_button("✅ Guardar Mi Inscripción / Calificación"):
                 if r_nombre.strip() and r_dni.strip() and r_hospital.strip():
                     db = cargar_db_cursantes()
                     key = re.sub(r"\W+", "", r_dni.strip()) or r_nombre.strip().upper()
@@ -284,10 +383,10 @@ with col_reg:
                     guardar_db_cursantes(db)
                     st.success(f"🎉 ¡Datos registrados correctamente para {r_nombre} ({r_hospital})!")
                 else:
-                    st.warning("Completá Nombre, DNI e Institución/Hospital.")
+                    st.warning("Por favor completá Nombre, DNI e Institución/Hospital.")
 
 with col_admin:
-    with st.expander("📊 Estadísticas de Cursantes (Exclusivo Dr. Marcos Gamond)", expanded=False):
+    with st.expander("📊 Estadísticas de Cursantes (Dr. Marcos Gamond)", expanded=False):
         clave_docente = st.text_input("Clave de Director Académico:", type="password", placeholder="Ingresá Gamond2026")
         if clave_docente == "Gamond2026":
             db = cargar_db_cursantes()
@@ -317,10 +416,17 @@ with col_admin:
                         f"\"{c.get('dni','')}\",\"{c.get('nombre','')}\",\"{c.get('localidad','')}\",\"{c.get('hospital','')}\",\"{c.get('servicio','')}\",\"{c.get('contacto','')}\",\"{c.get('estado','')}\",{c.get('puntaje',0)}%,\"{c.get('fecha_registro','')}\""
                     )
                 st.download_button(
-                    "📥 Descargar Excel (.CSV) Completo",
+                    "📥 Descargar Planilla Excel (.CSV)",
                     data="\n".join(filas_csv).encode("utf-8-sig"),
                     file_name="estadisticas_enfermeria_14nov_gamond.csv",
                     mime="text/csv",
                 )
             else:
                 st.info("Aún no hay cursantes registrados.")
+
+
+# ==============================================================================
+# 2. CAMPUS INTERACTIVO COMPLETO (10 UNIDADES, MULTIMEDIA, CALCULADORAS, TUTOR)
+# ==============================================================================
+html_campus = construir_html_completo()
+components.html(html_campus, height=2050, scrolling=True)
